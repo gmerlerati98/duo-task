@@ -19,7 +19,7 @@ spec:
         app: flask
     spec:
       containers:
-      - name: flask
+      - name: flask-container
         image: gmerlo98/duo-jenk:latest
         imagePullPolicy: Always
         ports:
