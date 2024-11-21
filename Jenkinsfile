@@ -1,27 +1,76 @@
 pipeline {
     agent any
     stages {
+        stage('Init') {
+            steps {
+                script {
+                    if (env.GIT_BRANCH == 'origin/main') {
+                        sh '''
+                        kubectl create ns prod || echo "------- Prod Namespace Already Exists -------"
+                        '''
+                    } else if (env.GIT_BRANCH == 'origin/dev') {
+                        sh '''
+                        kubectl create ns dev || echo "------- Prod Namespace Already Exists -------"
+                        '''
+                    } else {
+                        sh'echo "Unrecogognised branch"'
+                    }
+                }
+            }
+        }
         stage('Build') {
             steps {
-                sh '''
-                docker build -t gmerlo98/duo-jenk:latest -t gmerlo98/duo-jenk:v${BUILD_NUMBER} .
-                '''
+                script {
+                    if (env.GIT_BRANCH == 'origin/main') {
+                        sh '''
+                        docker build -t gmerlo98/duo-jenk:latest -t gmerlo98/duo-jenk:v${BUILD_NUMBER} .
+                        '''
+                    } else if (env.GIT_BRANCH == 'origin/dev') {
+                        sh '''
+                        docker build -t gmerlo98/duo-jenk:latest -t gmerlo98/duo-jenk:v${BUILD_NUMBER} .
+                        '''
+                    } else {
+                        sh'echo "Unrecogognised branch"'
+                    }
+                }
             }
         }
         stage('Push') {
             steps {
-                sh '''
-                docker push gmerlo98/duo-jenk:latest
-                docker push gmerlo98/duo-jenk:v${BUILD_NUMBER}
-                '''
+                script {
+                    if (env.GIT_BRANCH == 'origin/main') {
+                        sh '''
+                        docker push gmerlo98/duo-jenk:latest
+                        docker push gmerlo98/duo-jenk:v${BUILD_NUMBER}
+                        '''
+                    } else if (env.GIT_BRANCH == 'origin/dev') {
+                        sh '''
+                        docker push gmerlo98/duo-jenk:latest
+                        docker push gmerlo98/duo-jenk:v${BUILD_NUMBER}
+                        '''
+                    } else {
+                        sh'echo "Unrecogognised branch"'
+                    }
+                }
             }
         }
         stage('Deploy') {
             steps {
-                sh'''
-                kubectl apply -f ./kubernetes
-                kubectl set image deployment/flask flask-container=gmerlo98/duo-jenk:v${BUILD_NUMBER}
-                '''
+                script {
+                    if (env.GIT_BRANCH == 'origin/main') {
+                        sh'''
+                        kubectl apply -f ./kubernetes -n prod
+                        kubectl set image deployment/flask flask-container=gmerlo98/duo-jenk:v${BUILD_NUMBER} -n prod
+                        '''
+                    } else if (env.GIT_BRANCH == 'origin/dev') {
+                        sh'''
+                        kubectl apply -f ./kubernetes -n dev
+                        kubectl set image deployment/flask flask-container=gmerlo98/duo-jenk:v${BUILD_NUMBER} -n dev
+                        '''
+                    } else {
+                        sh'echo "Unrecogognised branch"'
+                    }
+                }
             }
         }
     }
